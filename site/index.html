@@ -104,11 +104,10 @@
       padding: 24px;
     }
 
-    .service { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed var(--border); }
-    .service label { display: flex; gap: 10px; align-items: center; cursor: pointer; }
-
-    .options { margin-top: 16px; display: grid; gap: 12px; max-width: 360px; }
-    .options label { display: flex; gap: 8px; align-items: center; }
+    .service { display: flex; justify-content: space-between; gap: 16px; padding: 8px 0; border-bottom: 1px dashed var(--border); }
+    .service span:last-child { text-align: right; white-space: nowrap; }
+    .price-note { margin-top: 16px; color: var(--muted); font-size: 0.95rem; }
+    .privacy-note { color: var(--muted); font-size: 0.85rem; }
 
     input[type="text"], input[type="email"], input[type="tel"], input[type="date"], select, textarea {
       width: 100%;
@@ -122,10 +121,6 @@
 
     /* Hidden from people; automated form fillers tend to complete it */
     .form-trap { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
-
-    .summary { margin-top: 18px; }
-    .summary p { color: var(--muted); }
-    .summary .total { font-size: 1.3rem; font-weight: 700; color: var(--dark); }
 
     form { display: grid; gap: 14px; max-width: 460px; }
     form label { font-size: 0.95rem; color: var(--muted); }
@@ -203,23 +198,15 @@
     <section id="services">
       <h2>Services &amp; prices</h2>
       <div class="card">
-        <div class="service"><label><input type="checkbox" class="svc" value="45"> Basic tune-up</label><span>$45</span></div>
-        <div class="service"><label><input type="checkbox" class="svc" value="90"> Full service</label><span>$90</span></div>
-        <div class="service"><label><input type="checkbox" class="svc" value="15"> Flat tire repair</label><span>$15</span></div>
-        <div class="service"><label><input type="checkbox" class="svc" value="25"> Brake adjustment</label><span>$25</span></div>
-
-        <div class="options">
-          <label><input type="checkbox" id="student"> I'm a student (15% off)</label>
-          <div>
-            <input type="text" id="promo" placeholder="Promo code" aria-label="Promo code">
-          </div>
-        </div>
-
-        <div class="summary">
-          <p>Subtotal: <span id="subtotal">$0.00</span></p>
-          <p>Discount: <span id="discount">0%</span></p>
-          <p class="total">Total: <span id="total">$0.00</span></p>
-        </div>
+        <div class="service"><span>Basic tune-up</span><span>$45</span></div>
+        <div class="service"><span>Full service</span><span>$90</span></div>
+        <div class="service"><span>Flat tire repair</span><span>$15 (+$8 if a new tube is needed)</span></div>
+        <div class="service"><span>Brake adjustment</span><span>$25</span></div>
+        <div class="service"><span>Brake pad replacement</span><span>$35 + parts</span></div>
+        <div class="service"><span>Chain replacement</span><span>$20 + parts</span></div>
+        <div class="service"><span>Wheel truing</span><span>$25</span></div>
+        <div class="service"><span>E-bike check-up</span><span>$40</span></div>
+        <p class="price-note">We don't repair e-bike batteries or motors. Your final price is confirmed by the shop after we talk. Students get 15% off. If you have a student card or promo code, mention it when we call.</p>
       </div>
     </section>
 
@@ -374,34 +361,6 @@
 
     window.addEventListener('resize', syncHeaderHeight);
     syncHeaderHeight();
-
-    // ---------- Price calculator ----------
-    const serviceBoxes = document.querySelectorAll('.svc');
-    const studentBox = document.getElementById('student');
-    const promoInput = document.getElementById('promo');
-
-    function calcTotal() {
-      let subtotal = 0;
-      serviceBoxes.forEach(function (box) {
-        if (box.checked) subtotal += Number(box.value);
-      });
-
-      let discount = 0;
-      // Discounts don't combine: the customer gets the biggest one
-      if (studentBox.checked) discount = Math.max(discount, 0.15);
-      if (promoInput.value.trim().toUpperCase() === 'WINTER10') discount = Math.max(discount, 0.10);
-
-      const total = subtotal * (1 - discount);
-
-      document.getElementById('subtotal').textContent = '$' + subtotal.toFixed(2);
-      document.getElementById('discount').textContent = Math.round(discount * 100) + '%';
-      document.getElementById('total').textContent = '$' + total.toFixed(2);
-    }
-
-    serviceBoxes.forEach(function (box) { box.addEventListener('change', calcTotal); });
-    studentBox.addEventListener('change', calcTotal);
-    promoInput.addEventListener('input', calcTotal);
-    calcTotal();
 
     // ---------- Booking ----------
     const bookingForm = document.getElementById('booking-form');
