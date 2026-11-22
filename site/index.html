@@ -191,6 +191,7 @@
         <tr><td>Monday – Friday</td><td>9:00 – 18:00</td></tr>
         <tr><td>Saturday</td><td>10:00 – 15:00</td></tr>
         <tr><td>Sunday</td><td>Closed</td></tr>
+        <tr><td>Dec 25, Dec 26, Jan 1</td><td>Closed</td></tr>
       </table>
     </section>
 
@@ -276,10 +277,23 @@
       6: [10, 15]
     };
 
-    // Weekday of a YYYY-MM-DD string, independent of the visitor's time zone
-    function weekdayOf(dateString) {
+    // Closed every year on these dates (MM-DD)
+    const CLOSED_DATES = ['12-25', '12-26', '01-01'];
+
+    // A YYYY-MM-DD string as a timestamp, independent of the visitor's time zone
+    function dayValue(dateString) {
       const [year, month, date] = dateString.split('-').map(Number);
-      return new Date(Date.UTC(year, month - 1, date)).getUTCDay();
+      return Date.UTC(year, month - 1, date);
+    }
+
+    function isHoliday(dateString) {
+      return CLOSED_DATES.includes(dateString.slice(-5));
+    }
+
+    // Opening hours for a date, or null when the shop is closed
+    function hoursFor(dateString) {
+      if (isHoliday(dateString)) return null;
+      return SHOP_HOURS[new Date(dayValue(dateString)).getUTCDay()];
     }
 
     // Current date and hour at the shop, wherever the visitor is
@@ -296,12 +310,12 @@
         parts[part.type] = part.value;
       });
       const date = parts.year + '-' + parts.month + '-' + parts.day;
-      return { date: date, day: weekdayOf(date), hour: Number(parts.hour) };
+      return { date: date, hour: Number(parts.hour) };
     }
 
     function updateStatus() {
       const now = torontoNow();
-      const hours = SHOP_HOURS[now.day];
+      const hours = hoursFor(now.date);
       const isOpen = !!hours && now.hour >= hours[0] && now.hour < hours[1];
 
       statusEl.textContent = isOpen ? 'Open now' : 'Closed now';
@@ -375,6 +389,71 @@
     const timeSelect = document.getElementById('time');
     const bookingError = document.getElementById('booking-error');
     const confirmation = document.getElementById('confirmation');
+    const BOOKING_WINDOW_DAYS = 365;
+
+    function latestBookingDate(today) {
+      const latest = dayValue(today.date) + BOOKING_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+      return new Date(latest).toISOString().slice(0, 10);
+    }
+
+    // Hours that can still be booked on a date
+    function slotsFor(dateString, today) {
+      const hours = hoursFor(dateString);
+      if (!hours) return [];
+      return Array.from(timeSelect.options)
+        .map(function (option) { return parseInt(option.value, 10); })
+        .filter(function (hour) {
+          const withinHours = hour >= hours[0] && hour < hours[1];
+          return withinHours && (dateString !== today.date || hour > today.hour);
+        });
+    }
+
+    // Why a date can't be booked, or an empty string if it can
+    function dateProblem(dateString, today) {
+      const day = dayValue(dateString);
+      if (day < dayValue(today.date)) {
+        return 'That date has already passed. Please pick another day.';
+      }
+      if (day > dayValue(latestBookingDate(today))) {
+        return 'We take bookings up to one year ahead. Please pick an earlier date.';
+      }
+      if (isHoliday(dateString)) {
+        return "Sorry, we're closed on that holiday. Please pick another day.";
+      }
+      if (!hoursFor(dateString)) {
+        return "Sorry, we're closed on Sundays. Please pick another day.";
+      }
+      if (slotsFor(dateString, today).length === 0) {
+        return 'There are no more times available that day. Please pick another day.';
+      }
+      return '';
+    }
+
+    // Only offers times that can be booked on the chosen date
+    function updateTimeOptions() {
+      const today = torontoNow();
+      const date = dateInput.value;
+      dateInput.min = today.date;
+      dateInput.max = latestBookingDate(today);
+
+      const slots = date && !dateProblem(date, today) ? slotsFor(date, today) : null;
+      timeSelect.disabled = !!date && !slots;
+
+      Array.from(timeSelect.options).forEach(function (option) {
+        option.disabled = !!slots && !slots.includes(parseInt(option.value, 10));
+      });
+
+      if (slots && !slots.includes(parseInt(timeSelect.value, 10))) {
+        timeSelect.value = slots[0] + ':00';
+      }
+    }
+
+    dateInput.addEventListener('change', function () {
+      bookingError.textContent = dateInput.value ? dateProblem(dateInput.value, torontoNow()) : '';
+      updateTimeOptions();
+    });
+
+    updateTimeOptions();
 
     bookingForm.addEventListener('submit', function (e) {
       e.preventDefault();
@@ -390,25 +469,16 @@
       const today = torontoNow();
       const selectedHour = parseInt(timeSelect.value, 10);
 
-      if (dateInput.value < today.date) {
-        bookingError.textContent = 'That date has already passed. Please pick another day.';
+      const problem = dateProblem(dateInput.value, today);
+      if (problem) {
+        bookingError.textContent = problem;
+        updateTimeOptions();
         return;
       }
 
-      const hours = SHOP_HOURS[weekdayOf(dateInput.value)];
-      if (!hours) {
-        bookingError.textContent = "Sorry, we're closed on Sundays. Please pick another day.";
-        return;
-      }
-
-      if (selectedHour < hours[0] || selectedHour >= hours[1]) {
-        bookingError.textContent = 'On that day we take bookings from ' + hours[0] +
-          ':00 to ' + (hours[1] - 1) + ':00. Please pick another time.';
-        return;
-      }
-
-      if (dateInput.value === today.date && selectedHour <= today.hour) {
-        bookingError.textContent = 'That time has already passed. Please pick a later time.';
+      if (!slotsFor(dateInput.value, today).includes(selectedHour)) {
+        bookingError.textContent = "That time isn't available. Please pick another time.";
+        updateTimeOptions();
         return;
       }
 
@@ -416,6 +486,7 @@
         dateInput.value + ' at ' + timeSelect.value + '.';
       confirmation.classList.remove('hidden');
       bookingForm.reset();
+      updateTimeOptions();
     });
 
     // ---------- FAQ ----------
