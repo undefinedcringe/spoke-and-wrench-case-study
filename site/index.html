@@ -394,10 +394,10 @@
     });
 
     // ---------- FAQ ----------
-    const question = document.querySelector('.faq-q');
-    question.addEventListener('click', function () {
-      const answer = document.querySelector('.faq-a');
-      answer.classList.toggle('open');
+    document.querySelectorAll('.faq-q').forEach(function (question) {
+      question.addEventListener('click', function () {
+        question.nextElementSibling.classList.toggle('open');
+      });
     });
   </script>
 </body>
