@@ -110,7 +110,7 @@
     .options { margin-top: 16px; display: grid; gap: 12px; max-width: 360px; }
     .options label { display: flex; gap: 8px; align-items: center; }
 
-    input[type="text"], input[type="email"], input[type="date"], select {
+    input[type="text"], input[type="email"], input[type="tel"], input[type="date"], select, textarea {
       width: 100%;
       padding: 10px 12px;
       border: 1px solid var(--border);
@@ -118,6 +118,10 @@
       font-size: 1rem;
       font-family: inherit;
     }
+    textarea { min-height: 110px; resize: vertical; }
+
+    /* Hidden from people; automated form fillers tend to complete it */
+    .form-trap { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 
     .summary { margin-top: 18px; }
     .summary p { color: var(--muted); }
@@ -224,24 +228,40 @@
       <form id="booking-form" novalidate>
         <div>
           <label for="name">Your name</label>
-          <input type="text" id="name" maxlength="80">
+          <input type="text" id="name" maxlength="80" autocomplete="name" required>
         </div>
         <div>
-          <label for="date">Date</label>
-          <input type="date" id="date">
+          <label for="phone">Phone number</label>
+          <input type="tel" id="phone" maxlength="40" autocomplete="tel" placeholder="416-555-0123" required>
         </div>
         <div>
-          <label for="time">Time</label>
+          <label for="email">Email</label>
+          <input type="email" id="email" maxlength="254" autocomplete="email" required>
+        </div>
+        <div>
+          <label for="issue">What's wrong with your bike?</label>
+          <textarea id="issue" maxlength="2000" required></textarea>
+        </div>
+        <div class="form-trap" aria-hidden="true">
+          <label for="website">Leave this field empty</label>
+          <input type="text" id="website" tabindex="-1" autocomplete="off">
+        </div>
+        <div>
+          <label for="date">Preferred day</label>
+          <input type="date" id="date" required>
+        </div>
+        <div>
+          <label for="time">Preferred time</label>
           <select id="time">
             <option>9:00</option><option>10:00</option><option>11:00</option>
             <option>12:00</option><option>13:00</option><option>14:00</option>
             <option>15:00</option><option>16:00</option><option>17:00</option>
           </select>
         </div>
-        <button class="btn" type="submit">Book now</button>
-        <p id="booking-error" class="error"></p>
+        <button class="btn" id="booking-submit" type="submit">Send request</button>
+        <p id="booking-error" class="error" role="alert"></p>
       </form>
-      <div id="confirmation" class="confirmation hidden"></div>
+      <div id="confirmation" class="confirmation hidden" role="status"></div>
     </section>
 
     <section id="faq">
@@ -386,11 +406,51 @@
     // ---------- Booking ----------
     const bookingForm = document.getElementById('booking-form');
     const nameInput = document.getElementById('name');
+    const phoneInput = document.getElementById('phone');
+    const emailInput = document.getElementById('email');
+    const issueInput = document.getElementById('issue');
+    const trapInput = document.getElementById('website');
     const dateInput = document.getElementById('date');
     const timeSelect = document.getElementById('time');
+    const submitButton = document.getElementById('booking-submit');
     const bookingError = document.getElementById('booking-error');
     const confirmation = document.getElementById('confirmation');
     const BOOKING_WINDOW_DAYS = 365;
+    const BOOKING_WEBHOOK_URL = 'https://hook.eu1.make.com/YOUR_WEBHOOK_ID';
+    const BOOKING_TIMEOUT_MS = 45000;
+    const EMAIL_PATTERN = /^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/;
+    const PHONE_PATTERN = /^[0-9+().\s-]+$/;
+
+    function isValidPhone(phone) {
+      const digits = phone.replace(/\D/g, '');
+      return PHONE_PATTERN.test(phone) && digits.length >= 10 && digits.length <= 15;
+    }
+
+    function showBookingSuccess(name) {
+      confirmation.textContent = 'Thanks, ' + name + '! We received your request and will call you ' +
+        'within 1 business day to confirm your appointment. Your time is not booked until we speak with you.';
+      confirmation.classList.remove('hidden');
+      bookingForm.reset();
+      updateTimeOptions();
+    }
+
+    // Sent as a simple form post so browsers can reach the webhook directly
+    async function sendBooking(details) {
+      const controller = new AbortController();
+      const timer = setTimeout(function () { controller.abort(); }, BOOKING_TIMEOUT_MS);
+      try {
+        const response = await fetch(BOOKING_WEBHOOK_URL, {
+          method: 'POST',
+          body: new URLSearchParams(details),
+          signal: controller.signal
+        });
+        if (!response.ok) return false;
+        const result = await response.json();
+        return result.ok === true;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
 
     function latestBookingDate(today) {
       const latest = dayValue(today.date) + BOOKING_WINDOW_DAYS * 24 * 60 * 60 * 1000;
@@ -456,14 +516,27 @@
 
     updateTimeOptions();
 
-    bookingForm.addEventListener('submit', function (e) {
+    bookingForm.addEventListener('submit', async function (e) {
       e.preventDefault();
+      if (submitButton.disabled) return;
       bookingError.textContent = '';
       confirmation.classList.add('hidden');
 
       const name = nameInput.value.trim();
-      if (!name || !dateInput.value) {
-        bookingError.textContent = 'Please enter your name and choose a date.';
+      const phone = phoneInput.value.trim();
+      const email = emailInput.value.trim();
+      const issue = issueInput.value.trim();
+
+      if (!name || !phone || !email || !issue || !dateInput.value) {
+        bookingError.textContent = 'Please fill in your name, phone, email, bike problem and preferred day.';
+        return;
+      }
+      if (!isValidPhone(phone)) {
+        bookingError.textContent = 'Please enter a valid phone number, including the area code.';
+        return;
+      }
+      if (!EMAIL_PATTERN.test(email)) {
+        bookingError.textContent = 'Please enter a valid email address.';
         return;
       }
 
@@ -483,11 +556,38 @@
         return;
       }
 
-      confirmation.textContent = 'Thanks, ' + name + '! We\'ll see you on ' +
-        dateInput.value + ' at ' + timeSelect.value + '.';
-      confirmation.classList.remove('hidden');
-      bookingForm.reset();
-      updateTimeOptions();
+      // Automated submission: look successful, but send nothing
+      if (trapInput.value) {
+        showBookingSuccess(name);
+        return;
+      }
+
+      submitButton.disabled = true;
+      submitButton.textContent = 'Sending…';
+
+      let sent = false;
+      try {
+        sent = await sendBooking({
+          name: name,
+          phone: phone,
+          email: email,
+          issue: issue,
+          preferred_day: dateInput.value + ' at ' + timeSelect.value,
+          website: ''
+        });
+      } catch (error) {
+        sent = false;
+      }
+
+      submitButton.disabled = false;
+      submitButton.textContent = 'Send request';
+
+      if (sent) {
+        showBookingSuccess(name);
+      } else {
+        bookingError.textContent = "We couldn't confirm that your request was sent. If no confirmation " +
+          'email arrives in a few minutes, please try again or visit the shop during opening hours.';
+      }
     });
 
     // ---------- FAQ ----------
