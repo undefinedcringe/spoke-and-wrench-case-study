@@ -170,7 +170,7 @@
   <header>
     <div class="logo">Spoke <span>&amp;</span> Wrench</div>
     <span id="status" class="status">…</span>
-    <button class="burger" id="burger" aria-label="Menu">☰</button>
+    <button class="burger" id="burger" aria-label="Menu" aria-controls="nav" aria-expanded="false">☰</button>
     <nav id="nav">
       <a href="#services">Services</a>
       <a href="#booking">Book</a>
@@ -206,7 +206,7 @@
         <div class="options">
           <label><input type="checkbox" id="student"> I'm a student (15% off)</label>
           <div>
-            <input type="text" id="promo" placeholder="Promo code">
+            <input type="text" id="promo" placeholder="Promo code" aria-label="Promo code">
           </div>
         </div>
 
@@ -246,15 +246,15 @@
     <section id="faq">
       <h2>FAQ</h2>
       <div class="faq-item">
-        <button class="faq-q">Do I need to book in advance?</button>
+        <button class="faq-q" aria-expanded="false">Do I need to book in advance?</button>
         <div class="faq-a">Booking is recommended, but we also accept walk-ins when we have free slots.</div>
       </div>
       <div class="faq-item">
-        <button class="faq-q">How long does a full service take?</button>
+        <button class="faq-q" aria-expanded="false">How long does a full service take?</button>
         <div class="faq-a">Usually 1–2 business days, depending on parts availability.</div>
       </div>
       <div class="faq-item">
-        <button class="faq-q">Do you repair e-bikes?</button>
+        <button class="faq-q" aria-expanded="false">Do you repair e-bikes?</button>
         <div class="faq-a">Yes, we service most e-bike brands, except for battery and motor repairs.</div>
       </div>
     </section>
@@ -492,7 +492,8 @@
     // ---------- FAQ ----------
     document.querySelectorAll('.faq-q').forEach(function (question) {
       question.addEventListener('click', function () {
-        question.nextElementSibling.classList.toggle('open');
+        const isOpen = question.nextElementSibling.classList.toggle('open');
+        question.setAttribute('aria-expanded', String(isOpen));
       });
     });
   </script>
