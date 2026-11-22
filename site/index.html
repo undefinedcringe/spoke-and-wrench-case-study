@@ -328,8 +328,9 @@
       });
 
       let discount = 0;
-      if (studentBox.checked) discount += 0.15;
-      if (promoInput.value.trim().toUpperCase() === 'WINTER10') discount += 0.10;
+      // Discounts don't combine: the customer gets the biggest one
+      if (studentBox.checked) discount = Math.max(discount, 0.15);
+      if (promoInput.value.trim().toUpperCase() === 'WINTER10') discount = Math.max(discount, 0.10);
 
       const total = subtotal * (1 - discount);
 
