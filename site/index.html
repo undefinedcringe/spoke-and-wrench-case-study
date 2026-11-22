@@ -529,6 +529,9 @@
         return;
       }
 
+      // Locks the form so nothing typed during sending is lost when it clears
+      bookingForm.inert = true;
+      bookingForm.setAttribute('aria-busy', 'true');
       submitButton.disabled = true;
       submitButton.textContent = 'Sending…';
 
@@ -546,6 +549,8 @@
         sent = false;
       }
 
+      bookingForm.inert = false;
+      bookingForm.removeAttribute('aria-busy');
       submitButton.disabled = false;
       submitButton.textContent = 'Send request';
 
