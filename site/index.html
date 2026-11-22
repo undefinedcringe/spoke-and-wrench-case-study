@@ -73,6 +73,7 @@
         gap: 10px;
         padding-top: 10px;
       }
+      nav.open { display: flex; }
     }
 
     main { max-width: 960px; margin: 0 auto; padding: 32px 24px; }
@@ -312,11 +313,7 @@
     const nav = document.getElementById('nav');
 
     burger.addEventListener('click', function () {
-      if (nav.style.display === 'flex') {
-        nav.style.display = 'none';
-      } else {
-        nav.style.display = 'flex';
-      }
+      nav.classList.toggle('open');
     });
 
     // ---------- Price calculator ----------
