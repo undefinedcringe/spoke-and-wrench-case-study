@@ -259,17 +259,53 @@
   <script>
     // ---------- Open / closed badge ----------
     const statusEl = document.getElementById('status');
-    const now = new Date();
-    const day = now.getDay();
-    const hour = now.getHours();
 
-    let isOpen = false;
-    if (day >= 1 && day <= 6) {
-      isOpen = hour >= 9 && hour <= 18;
+    // Shop hours in Toronto time, by weekday (0 = Sunday): [opens, closes]
+    const SHOP_HOURS = {
+      0: null,
+      1: [9, 18],
+      2: [9, 18],
+      3: [9, 18],
+      4: [9, 18],
+      5: [9, 18],
+      6: [10, 15]
+    };
+
+    // Weekday of a YYYY-MM-DD string, independent of the visitor's time zone
+    function weekdayOf(dateString) {
+      const [year, month, date] = dateString.split('-').map(Number);
+      return new Date(Date.UTC(year, month - 1, date)).getUTCDay();
     }
 
-    statusEl.textContent = isOpen ? 'Open now' : 'Closed now';
-    statusEl.classList.add(isOpen ? 'open' : 'closed');
+    // Current date and hour at the shop, wherever the visitor is
+    function torontoNow() {
+      const parts = {};
+      new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Toronto',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        hourCycle: 'h23'
+      }).formatToParts(new Date()).forEach(function (part) {
+        parts[part.type] = part.value;
+      });
+      const date = parts.year + '-' + parts.month + '-' + parts.day;
+      return { date: date, day: weekdayOf(date), hour: Number(parts.hour) };
+    }
+
+    function updateStatus() {
+      const now = torontoNow();
+      const hours = SHOP_HOURS[now.day];
+      const isOpen = !!hours && now.hour >= hours[0] && now.hour < hours[1];
+
+      statusEl.textContent = isOpen ? 'Open now' : 'Closed now';
+      statusEl.classList.toggle('open', isOpen);
+      statusEl.classList.toggle('closed', !isOpen);
+    }
+
+    updateStatus();
+    setInterval(updateStatus, 60000);
 
     // ---------- Mobile menu ----------
     const burger = document.getElementById('burger');
