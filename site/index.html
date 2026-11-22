@@ -354,6 +354,7 @@
     bookingForm.addEventListener('submit', function (e) {
       e.preventDefault();
       bookingError.textContent = '';
+      confirmation.classList.add('hidden');
 
       const name = nameInput.value.trim();
       if (!name || !dateInput.value) {
@@ -361,13 +362,32 @@
         return;
       }
 
-      const selectedDay = new Date(dateInput.value).getDay();
-      if (selectedDay === 0) {
+      const today = torontoNow();
+      const selectedHour = parseInt(timeSelect.value, 10);
+
+      if (dateInput.value < today.date) {
+        bookingError.textContent = 'That date has already passed. Please pick another day.';
+        return;
+      }
+
+      const hours = SHOP_HOURS[weekdayOf(dateInput.value)];
+      if (!hours) {
         bookingError.textContent = "Sorry, we're closed on Sundays. Please pick another day.";
         return;
       }
 
-      confirmation.innerHTML = 'Thanks, ' + name + '! We\'ll see you on ' +
+      if (selectedHour < hours[0] || selectedHour >= hours[1]) {
+        bookingError.textContent = 'On that day we take bookings from ' + hours[0] +
+          ':00 to ' + (hours[1] - 1) + ':00. Please pick another time.';
+        return;
+      }
+
+      if (dateInput.value === today.date && selectedHour <= today.hour) {
+        bookingError.textContent = 'That time has already passed. Please pick a later time.';
+        return;
+      }
+
+      confirmation.textContent = 'Thanks, ' + name + '! We\'ll see you on ' +
         dateInput.value + ' at ' + timeSelect.value + '.';
       confirmation.classList.remove('hidden');
       bookingForm.reset();
