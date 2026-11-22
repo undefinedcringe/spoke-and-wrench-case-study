@@ -17,6 +17,9 @@
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
+    /* Keeps section titles visible below the sticky header after a menu jump */
+    html { scroll-padding-top: calc(var(--header-height, 72px) + 12px); }
+
     body {
       font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       background: var(--light);
@@ -311,10 +314,30 @@
     // ---------- Mobile menu ----------
     const burger = document.getElementById('burger');
     const nav = document.getElementById('nav');
+    const header = document.querySelector('header');
+
+    function syncHeaderHeight() {
+      document.documentElement.style.setProperty('--header-height', header.offsetHeight + 'px');
+    }
+
+    function setMenuOpen(isOpen) {
+      nav.classList.toggle('open', isOpen);
+      burger.setAttribute('aria-expanded', String(isOpen));
+      syncHeaderHeight();
+    }
 
     burger.addEventListener('click', function () {
-      nav.classList.toggle('open');
+      setMenuOpen(!nav.classList.contains('open'));
     });
+
+    nav.querySelectorAll('a').forEach(function (link) {
+      link.addEventListener('click', function () {
+        setMenuOpen(false);
+      });
+    });
+
+    window.addEventListener('resize', syncHeaderHeight);
+    syncHeaderHeight();
 
     // ---------- Price calculator ----------
     const serviceBoxes = document.querySelectorAll('.svc');
