@@ -379,13 +379,11 @@
     const BOOKING_WINDOW_DAYS = 365;
     const BOOKING_WEBHOOK_URL = 'https://hook.eu1.make.com/YOUR_WEBHOOK_ID';
     const BOOKING_TIMEOUT_MS = 45000;
-    const EMAIL_PATTERN = /^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/;
-    const PHONE_PATTERN = /^[0-9+().\s-]+$/;
-
-    function isValidPhone(phone) {
-      const digits = phone.replace(/\D/g, '');
-      return PHONE_PATTERN.test(phone) && digits.length >= 10 && digits.length <= 15;
-    }
+    // These rules match the server-side checks in the Make scenario. Change both together.
+    const NAME_PATTERN = /^(?=.{1,80}$)(?!\[object )(?=.*[^\s=+@-])[^\x00-\x1F\x7F]+$/;
+    const PHONE_PATTERN = /^(?=.{10,40}$)(?!\D*(\d)(?:\D*\1)+\D*$)\+?(?:[\s().-]*\d){10,15}[\s().-]*(?:(?:[eE][xX][tT]\.?|[xX])\s*\d{1,6})?$/;
+    const EMAIL_PATTERN = /^(?=.{6,254}$)(?!.*\.\.)[A-Za-z0-9](?:[A-Za-z0-9._%+-]*[A-Za-z0-9_%+-])?@(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,24}$/;
+    const ISSUE_PATTERN = /^(?=[\s\S]{1,2000}$)(?!\[object )(?=[\s\S]*\S)[^\x00-\x08\x0B\x0C\x0E-\x1F\x7F]+$/;
 
     function showBookingSuccess(name) {
       confirmation.textContent = 'Thanks, ' + name + '! We received your request and will call you ' +
@@ -492,12 +490,20 @@
         bookingError.textContent = 'Please fill in your name, phone, email, bike problem and preferred day.';
         return;
       }
-      if (!isValidPhone(phone)) {
+      if (!NAME_PATTERN.test(name)) {
+        bookingError.textContent = 'Please enter your real name.';
+        return;
+      }
+      if (!PHONE_PATTERN.test(phone)) {
         bookingError.textContent = 'Please enter a valid phone number, including the area code.';
         return;
       }
       if (!EMAIL_PATTERN.test(email)) {
         bookingError.textContent = 'Please enter a valid email address.';
+        return;
+      }
+      if (!ISSUE_PATTERN.test(issue)) {
+        bookingError.textContent = 'Please describe the problem in plain text, up to 2000 characters.';
         return;
       }
 
