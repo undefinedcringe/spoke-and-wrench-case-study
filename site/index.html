@@ -142,6 +142,7 @@
       border-radius: 6px;
       background: #e3f2e9;
       color: #1d5c39;
+      overflow-wrap: anywhere;
     }
 
     .faq-item { border-bottom: 1px solid var(--border); }
@@ -221,7 +222,7 @@
       <form id="booking-form" novalidate>
         <div>
           <label for="name">Your name</label>
-          <input type="text" id="name">
+          <input type="text" id="name" maxlength="80">
         </div>
         <div>
           <label for="date">Date</label>
