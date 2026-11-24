@@ -2,7 +2,7 @@
 
 An end-to-end case study of a small-business job: diagnose a broken website from vague client complaints, fix it, connect it to an AI-assisted booking workflow, attack the result, and harden it.
 
-> **Training project.** Spoke & Wrench, its owner "Mike" and the job prices are part of a simulated client exercise. Nothing here was deployed for a real business, and all test data is synthetic. The work was done with [Claude Code](https://claude.com/product/claude-code) as an AI coding agent, while I directed scope, client decisions and review. See [Tools](docs/05-tools.md).
+> **Training project.** Spoke & Wrench, its owner "Mike" and the job prices are part of a simulated client exercise. Nothing here was deployed for a real business, and all test data is synthetic. The work was done with assistance of [Claude Code](https://claude.com/product/claude-code) as an AI coding agent, while I directed scope, client decisions and review. See [Tools](docs/05-tools.md).
 
 | Before | After |
 |---|---|
